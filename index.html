@@ -70,13 +70,13 @@
   .tab.active{color:var(--bg);background:var(--teal);font-weight:700}
 
   .sec-label{font-family:var(--display);font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--ink);font-weight:700;margin:24px 2px 11px;display:flex;align-items:center;gap:10px}
-  .sec-label::before{content:"";width:4px;height:15px;border-radius:2px;background:var(--teal);flex:0 0 auto}
+    color:var(--bar,var(--ink));font-weight:700;margin:24px 2px 11px;display:flex;align-items:center;gap:10px}
+  .sec-label::before{content:"";width:4px;height:15px;border-radius:2px;background:var(--bar,var(--teal));flex:0 0 auto}
   .sec-label::after{content:"";flex:1;height:1px;background:var(--line)}
   /* accordion (Plan tab) */
   .sec-toggle{cursor:pointer;user-select:none}
   .sec-toggle::after{display:none}
-  .sec-toggle .chev{margin-left:auto;color:var(--muted);font-size:11px;transition:transform .2s;font-family:var(--body)}
+  .sec-toggle .chev{margin-left:auto;color:inherit;opacity:.65;font-size:11px;transition:transform .2s;font-family:var(--body)}
   .sec-toggle.open .chev{transform:rotate(180deg)}
   .sec-group{display:none}
   .sec-group.open{display:block;animation:accIn .18s ease}
@@ -1198,6 +1198,14 @@ function drawAlcStrip(days){
 }
 
 /* ---------- plan reference ---------- */
+function colorizeSections(){
+  const pal=['var(--teal)','var(--copper)','var(--green)','var(--blue)','var(--violet)'];
+  ['view-today','view-trend','view-insights','view-plan'].forEach(id=>{
+    const root=document.getElementById(id);if(!root)return;
+    const labels=root.querySelectorAll('.sec-label');
+    labels.forEach((l,i)=>l.style.setProperty('--bar',pal[i%pal.length]));
+  });
+}
 function makeAccordion(){
   const root=document.getElementById('view-plan');
   if(!root||root.dataset.acc)return;root.dataset.acc='1';
@@ -1503,7 +1511,12 @@ function downloadReport(){try{const blob=new Blob([_reportHTML],{type:'text/html
 
 /* ---------- day-boundary setting ---------- */
 let GOALS={weight:null,waist:null,dry:5};
-async function loadSettings(){const s=await sget('settings');if(s){if(typeof s.rollover==='number')ROLLOVER=s.rollover;if(s.goals)GOALS=Object.assign({weight:null,waist:null,dry:5},s.goals);}updateRolloverUI();}
+async function loadSettings(){
+  ROLLOVER=0;GOALS={weight:null,waist:null,dry:5};            /* reset first — never carry across profiles */
+  const s=await sget('settings');
+  if(s){if(typeof s.rollover==='number')ROLLOVER=s.rollover;if(s.goals)GOALS=Object.assign({weight:null,waist:null,dry:5},s.goals);}
+  updateRolloverUI();
+}
 function updateRolloverUI(){document.querySelectorAll('#rolloverOpts .chip').forEach(c=>c.classList.toggle('on',+c.dataset.h===ROLLOVER));}
 async function setRollover(h){
   ROLLOVER=h;const s=(await sget('settings'))||{};s.rollover=h;s.goals=GOALS;await sset('settings',s);updateRolloverUI();await load();
@@ -1644,7 +1657,7 @@ function show(v){['today','trend','insights','plan'].forEach(x=>document.getElem
   }
   if(!activeProfile()&&getProfiles()[0])setActiveId(getProfiles()[0].id);
   renderProfiles();renderProfileList();updateCloudUI();
-  makeAccordion();
+  makeAccordion();colorizeSections();
   await loadSettings();await load();
   if(sb){const ch=await cloudSync();if(ch){await loadSettings();await load();}refreshOpenViews();updateCloudUI('synced ✓');}
 })();
